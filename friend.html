@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<title></title>
+	<script type="text/javascript">
+		var lastModified;
+		function getDomParser() {
+			var domParser = new DOMParser();
+			getDomParser = function getDomParser() {
+				return domParser;
+			}
+		}
+		function getUrl(url, receiver) {
+			with(new XMLHttpRequest()) {
+				open('GET', url);
+				addEventListener('load', function() {
+					receiver(response);
+				});
+				send();
+			}
+		}
+		function checkHeadModified() {
+			with(new XMLHttpRequest()) {
+				open('HEAD', 'head');
+				addEventListener('load', function() {
+					var newLastModified = getResponseHeader('Last-Modified');
+					if(lastModified != newLastModified) {
+						lastModified = newLastModified;
+						processHead();
+					}
+				});
+				send();
+			}
+		}
+		function processHead() {
+			getUrl('head', function(headUrl) {
+				postParent({'>':headUrl});
+			});
+		}
+		function processUrl(url, type) {
+			getUrl(url, function(data) {
+				switch(type) {
+					case 'application/json' :
+						data = JSON.parse(data);
+						break;
+					case 'text/xml' :
+					case 'text/html' :
+						data = getDomParser().parseFromString(data, type);
+				}
+				postParent({'=':url,'?':type,'#':data});
+			});
+		}
+		function clicked() {
+			postParent(document.querySelector('#text').value);
+		}
+		function attach() {
+			document.querySelector('#button').addEventListener('click', clicked);
+			setInterval(check, 5000);
+		}
+		function processMessage(messageEvent) {
+			processUrl(messageEvent.data['='], messageEvent.data['?']);
+		}
+		function postParent(data) {
+			parent.postMessage(data, '*');
+		}
+		function processInitialMessage(messageEvent) {
+			removeEventListener('message', processInitialMessage);
+			addEventListener('message', processMessage);
+
+			var body = document.querySelector('body');
+			var nameDiv = document.createElement('div');
+			nameDiv.innerHTML = messageEvent.data.name + ' with secret ' + messageEvent.data.secret;
+			body.insertBefore(nameDiv, body.children[0]);
+
+			processHead();
+		}
+		addEventListener('load', attach);
+		addEventListener('message', processInitialMessage);
+	</script>
+</head>
+<body>
+<label for="text">Message:</label><input type="text" id="text">
+<button id="button">Hello</button>
+</body>
+</html>

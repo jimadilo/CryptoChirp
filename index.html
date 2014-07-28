@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<title></title>
+	<script type="text/javascript">
+		var friendFrames = [
+			{name:'Matthew', url:'http://mathew/friend.html', secret:1},
+			{name:'Mark', url:'friend.html', secret:2},
+			{name:'Luke', url:'friend.html', secret:3},
+			{name:'John', url:'friend.html', secret:4}];
+		function attach() {
+			for(var frame in friendFrames) {
+				if(!friendFrames.hasOwnProperty(frame))
+					continue;
+
+				var frameSpec = friendFrames[frame];
+
+				var iframe = document.createElement('iframe');
+				iframe.id = frame;
+				iframe.src = frameSpec.url;
+				frameSpec.iframe = iframe;
+				iframe.frameSpec = frameSpec;
+				with({frameSpec:{name: frameSpec.name, secret: frameSpec.secret}}) {
+					iframe.addEventListener('load', function (event) {
+						event.target.contentWindow.postMessage(frameSpec, '*');
+					});
+				}
+				document.querySelector('div').appendChild(iframe);
+			}
+		}
+		function processMessage(message) {
+			if('>' in message.data)
+				message.source.postMessage({'=':message.data['>'],'?':'application/json'});
+			else {
+				if(message.data['?'] == 'application/json') {
+
+				}
+			}
+			var frameSpec = message.source.frameElement.frameSpec;
+			var dt = document.createElement('dt');
+			var dd = document.createElement('dd');
+			var dl = document.querySelector('dl');
+			dt.innerHTML = frameSpec.name + " says:";
+			dd.innerHTML = message.data;
+			if (dl.children) {
+				dl.insertBefore(dd, dl.children[0]);
+			} else {
+				dl.appendChild(dd);
+			}
+			dl.insertBefore(dt, dd);
+		}
+		addEventListener('load', attach);
+		addEventListener('message', processMessage);
+	</script>
+</head>
+<body>
+	<div style="display: flex"></div>
+	<dl>
+	</dl>
+</body>
+</html>
